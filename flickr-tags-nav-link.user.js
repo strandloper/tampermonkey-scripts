@@ -10,6 +10,8 @@
 // @match        https://www.flickr.com/photos/*/favorites
 // @match        https://www.flickr.com/photos/*/galleries
 // @match        https://www.flickr.com/people/*/groups/
+// @exclude      https://www.flickr.com/photos/*/tags
+// @exclude      https://www.flickr.com/photos/*/tags/
 // @grant        none
 // ==/UserScript==
 
