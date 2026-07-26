@@ -28,6 +28,15 @@ Scripts follow `<site>-<feature>.user.js` (e.g. `flickr-tag-filter.user.js`). Th
 `howtogeek-adblock-dismisser.js`, lacks the `.user.js` suffix — check a file's `==UserScript==`
 header rather than assuming behavior from its filename.
 
+## Flickr URL structure
+
+URLs of the form `https://www.flickr.com/people/<user-slug>` and
+`https://www.flickr.com/photos/<user-slug>` are followed by a user slug as the next path
+segment. Depending on how the account owner has configured their account, this slug is either
+a numeric user ID (e.g. `144957155@N06`) or a chosen alias (e.g. `strandloper`, the author's
+own). Both forms identify the same kind of thing — a single user — so when a URL you're given
+includes `<user-slug>`, treat it as matching either a user ID or an alias.
+
 ## Common structure across every script
 
 Each file is a single IIFE (`(function () { 'use strict'; ... })()`) preceded by a userscript
