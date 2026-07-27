@@ -36,6 +36,11 @@ On a Flickr user's tags page, adds a toggle button that hides every tag except a
 The allow-list can be edited in place (`PLACEHOLDER_TAGS`) or loaded from a remote JSON endpoint
 (`REMOTE_TAG_LIST_URL`) if you want to share the list with other tooling.
 
+### `flickr-tags-nav-link.user.js`
+Adds a "Tags" link to the end of a Flickr profile's subnav menu (About | Photostream | Albums |
+Faves | Galleries | Groups), linking to that profile's tags page — a page Flickr itself no longer
+links to from the UI.
+
 ### `howtogeek-adblock-dismisser.js`
 Automatically dismisses the adblock-detection banner on howtogeek.com and shows a brief toast
 confirming it did so.

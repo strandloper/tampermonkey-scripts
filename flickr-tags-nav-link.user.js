@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Flickr Tags Nav Link
 // @namespace    https://example.local/flickr-tags-nav-link
-// @version      1.0.0
+// @version      1.0.1
 // @description  Adds a "Tags" link to the end of a Flickr profile's subnav menu (About | Photostream | Albums | Faves | Galleries | Groups).
 // @author       you
 // @match        https://www.flickr.com/people/*/
@@ -13,10 +13,21 @@
 // @exclude      https://www.flickr.com/photos/*/tags
 // @exclude      https://www.flickr.com/photos/*/tags/
 // @grant        none
+// @run-at       document-idle
 // ==/UserScript==
 
 (function () {
     'use strict';
+
+    // Tampermonkey's match patterns are simple globs, not real regex, so
+    // @match/@exclude alone can't precisely target only the six subnav
+    // page types below (e.g. "/photos/*/" also matches individual photo
+    // pages and per-tag pages). Check the path ourselves and bail out
+    // immediately if this isn't one of them.
+    const ALLOWED_PATH = /^\/(?:people\/[^/]+\/(?:groups\/?)?|photos\/[^/]+\/(?:albums|favorites|galleries)?\/?)$/;
+    if (!ALLOWED_PATH.test(location.pathname)) {
+        return;
+    }
 
     function getUserSlug() {
         const match = location.pathname.match(/^\/(?:people|photos)\/([^/]+)/);
@@ -32,10 +43,12 @@
 
         const tagsHref = 'https://www.flickr.com/photos/' + slug + '/tags/';
 
-        const existing = document.getElementById('tags');
+        const existing = linksList.querySelector('#tags');
         if (existing) {
             const link = existing.querySelector('a');
-            if (link) link.setAttribute('href', tagsHref);
+            if (link && link.getAttribute('href') !== tagsHref) {
+                link.setAttribute('href', tagsHref);
+            }
             return;
         }
 
