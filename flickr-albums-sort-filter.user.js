@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Flickr Albums Sort & Filter
 // @namespace    https://example.com/tampermonkey
-// @version      1.7
+// @version      1.8
 // @description  Sorts your Flickr albums page alphabetically and adds a live filter box to the toolbar
 // @author       you
-// @match        https://www.flickr.com/photos/strandloper/albums/
-// @match        https://www.flickr.com/photos/strandloper/albums/*
+// @match        https://www.flickr.com/photos/sierrajulietcharlie/albums/
+// @match        https://www.flickr.com/photos/sierrajulietcharlie/albums/*
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==

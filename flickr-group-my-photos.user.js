@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Flickr Group My Photos
 // @namespace    http://tampermonkey.net/
-// @version      0.2
+// @version      0.3
 // @description  Adds a "My Photos" tab to Flickr group pages
 // @author       You
 // @match        https://www.flickr.com/groups/*/
@@ -23,7 +23,7 @@
         const mypool = document.getElementById('mypool');
         if (!pool || !mypool) return;
 
-        const isMyPhotos = location.pathname.includes('/pool/strandloper');
+        const isMyPhotos = location.pathname.includes('/pool/sierrajulietcharlie');
 
         pool.classList.toggle('selected', !isMyPhotos && pool.classList.contains('selected'));
         mypool.classList.toggle('selected', isMyPhotos);
@@ -46,7 +46,7 @@
         mypool.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
 
         const link = mypool.children[0];
-        link.setAttribute('href', baseUrl + 'pool/strandloper/');
+        link.setAttribute('href', baseUrl + 'pool/sierrajulietcharlie/');
         link.innerHTML = '<span>My Photos</span>';
 
         pool.after(mypool);

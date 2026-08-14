@@ -33,9 +33,9 @@ header rather than assuming behavior from its filename.
 URLs of the form `https://www.flickr.com/people/<user-slug>` and
 `https://www.flickr.com/photos/<user-slug>` are followed by a user slug as the next path
 segment. Depending on how the account owner has configured their account, this slug is either
-a numeric user ID (e.g. `144957155@N06`) or a chosen alias (e.g. `strandloper`, the author's
-own). Both forms identify the same kind of thing — a single user — so when a URL you're given
-includes `<user-slug>`, treat it as matching either a user ID or an alias.
+a numeric user ID (e.g. `144957155@N06`) or a chosen alias (e.g. `sierrajulietcharlie`, the
+author's own). Both forms identify the same kind of thing — a single user — so when a URL you're
+given includes `<user-slug>`, treat it as matching either a user ID or an alias.
 
 ## Common structure across every script
 
@@ -76,7 +76,12 @@ oversight to "fix" generically:
 - `flickr-tag-filter.user.js` hardcodes a remote tag-list URL (`REMOTE_TAG_LIST_URL`) served from
   a Tailscale host, with a `PLACEHOLDER_TAGS` fallback if that endpoint is unreachable.
 - `flickr-group-my-photos.user.js` and the `@match` blocks in the Flickr scripts hardcode the
-  author's own Flickr username (`strandloper`).
+  author's own Flickr username (`sierrajulietcharlie`).
 
 When modifying these, preserve the hardcoded-personal-config pattern rather than generalizing it
 into options/settings unless asked.
+
+If the author's Flickr alias itself changes again, don't hand-edit each occurrence: run
+`Replace-FlickrAlias.ps1 <oldAlias> <newAlias>` from the repo root — it updates every `.js` file
+(including `@match` lines, which can't be driven by a shared JS constant since Tampermonkey
+parses them statically) and bumps each changed file's `@version`.

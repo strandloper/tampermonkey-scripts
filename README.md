@@ -28,8 +28,8 @@ absolute coordinates that don't follow DOM order.
 
 ### `flickr-group-my-photos.user.js`
 Adds a "My Photos" tab next to the "Pool" tab on Flickr group pages, linking to just your own
-photos in that group's pool. The target Flickr username is hardcoded (`strandloper`) — change it
-to your own.
+photos in that group's pool. The target Flickr username is hardcoded (`sierrajulietcharlie`) —
+change it to your own.
 
 ### `flickr-tag-filter.user.js`
 On a Flickr user's tags page, adds a toggle button that hides every tag except a chosen allow-list.
@@ -53,6 +53,11 @@ Tampermonkey's dashboard, then verify the behavior by visiting the matching site
 
 See [CLAUDE.md](CLAUDE.md) for the conventions shared across scripts (SPA navigation handling,
 async network helpers, UI injection patterns, etc.) if you're extending one of them.
+
+A few scripts hardcode the author's own Flickr alias. If that alias ever changes, run
+`Replace-FlickrAlias.ps1 <oldAlias> <newAlias>` from the repo root instead of hand-editing each
+file — it finds every occurrence across all `.js` files, replaces it, and bumps the `@version` of
+any file it changes, then lists what was updated so you know what to re-sync in Tampermonkey.
 
 ## License
 
