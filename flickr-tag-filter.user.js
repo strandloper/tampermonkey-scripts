@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Flickr Tag Page Filter
 // @namespace    https://example.local/flickr-tag-filter
-// @version      1.0.0
+// @version      1.0.1
 // @description  Adds a toggle button to Flickr's user tag pages to hide all tags except a chosen list.
 // @author       you
 // @match        https://www.flickr.com/photos/*/tags
@@ -51,10 +51,19 @@
             callback();
             return;
         }
+        // GM_xmlhttpRequest goes through the browser's normal HTTP cache, so
+        // a plain repeat request to the same URL can keep returning a stale
+        // cached copy of tags.json after the file changes on the Pi - even
+        // across page reloads or reopened tabs, since the cache lives at the
+        // network layer, not the page. Force a fresh fetch every time with a
+        // cache-busting query param plus explicit no-cache headers.
+        const cacheBustedUrl = REMOTE_TAG_LIST_URL +
+            (REMOTE_TAG_LIST_URL.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now();
         GM_xmlhttpRequest({
             method: 'GET',
-            url: REMOTE_TAG_LIST_URL,
+            url: cacheBustedUrl,
             timeout: 3000,
+            headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
             onload: function (res) {
                 try {
                     const list = JSON.parse(res.responseText);
