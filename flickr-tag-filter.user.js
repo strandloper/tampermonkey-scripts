@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Flickr Tag Page Filter
 // @namespace    https://example.local/flickr-tag-filter
-// @version      1.0.1
+// @version      1.0.2
 // @description  Adds a toggle button to Flickr's user tag pages to hide all tags except a chosen list.
 // @author       you
 // @match        https://www.flickr.com/photos/*/tags
@@ -12,6 +12,7 @@
 // @connect      localhost
 // @connect      127.0.0.1
 // @connect      dietpi.tail6280e.ts.net
+// @connect      dietpi-lan
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -21,9 +22,10 @@
     /* ------------------------------------------------------------------
      * CONFIG
      * ------------------------------------------------------------------
-     * PLACEHOLDER_TAGS is used as-is unless REMOTE_TAG_LIST_URL is set
-     * and reachable, in which case the remote list (a JSON array of
-     * strings) replaces it for this run.
+     * PLACEHOLDER_TAGS is used as-is unless REMOTE_TAG_LIST_URL (tried
+     * first) or LOCAL_TAG_LIST_URL (interim fallback, e.g. when a VPN
+     * makes the tailnet unreachable) is set and reachable, in which case
+     * that list (a JSON array of strings) replaces it for this run.
      *
      * To wire this up to a shared tags.json also read by your LINQPad
      * script, run a tiny local static file server in the folder that
@@ -39,6 +41,7 @@
     ];
 
     const REMOTE_TAG_LIST_URL = 'http://dietpi.tail6280e.ts.net/tags-server/tags.json'; // e.g. 'http://127.0.0.1:8787/tags.json'
+    const LOCAL_TAG_LIST_URL = 'http://dietpi-lan/tags-server/tags.json';
 
     /* ------------------------------------------------------------------ */
 
@@ -46,19 +49,16 @@
     let filterOn = false;
     let initialised = false;
 
-    function loadRemoteTagsIfConfigured(callback) {
-        if (!REMOTE_TAG_LIST_URL) {
-            callback();
-            return;
-        }
-        // GM_xmlhttpRequest goes through the browser's normal HTTP cache, so
-        // a plain repeat request to the same URL can keep returning a stale
-        // cached copy of tags.json after the file changes on the Pi - even
-        // across page reloads or reopened tabs, since the cache lives at the
-        // network layer, not the page. Force a fresh fetch every time with a
-        // cache-busting query param plus explicit no-cache headers.
-        const cacheBustedUrl = REMOTE_TAG_LIST_URL +
-            (REMOTE_TAG_LIST_URL.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now();
+    // GM_xmlhttpRequest goes through the browser's normal HTTP cache, so a
+    // plain repeat request to the same URL can keep returning a stale
+    // cached copy of tags.json after the file changes on the Pi - even
+    // across page reloads or reopened tabs, since the cache lives at the
+    // network layer, not the page. Force a fresh fetch every time with a
+    // cache-busting query param plus explicit no-cache headers.
+    // Calls onDone with the parsed tag array, or null if the URL was
+    // unreachable, timed out, or didn't hold a valid non-empty JSON array.
+    function fetchTagList(url, onDone) {
+        const cacheBustedUrl = url + (url.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now();
         GM_xmlhttpRequest({
             method: 'GET',
             url: cacheBustedUrl,
@@ -68,24 +68,56 @@
                 try {
                     const list = JSON.parse(res.responseText);
                     if (Array.isArray(list) && list.length) {
-                        ALLOWED_TAGS = new Set(
-                            list.map(t => String(t).trim().toLowerCase())
-                        );
-                        console.log('[FlickrTagFilter] Loaded', ALLOWED_TAGS.size, 'tags from', REMOTE_TAG_LIST_URL);
+                        onDone(list);
+                        return;
                     }
+                    console.warn('[FlickrTagFilter]', url, 'returned an empty or invalid tag list.');
                 } catch (e) {
-                    console.warn('[FlickrTagFilter] Failed to parse remote tag list, using placeholder list.', e);
+                    console.warn('[FlickrTagFilter] Failed to parse tag list from', url, e);
                 }
-                callback();
+                onDone(null);
             },
             onerror: function () {
-                console.warn('[FlickrTagFilter] Could not reach', REMOTE_TAG_LIST_URL, '- using placeholder list.');
-                callback();
+                console.warn('[FlickrTagFilter] Could not reach', url);
+                onDone(null);
             },
             ontimeout: function () {
-                console.warn('[FlickrTagFilter] Timed out reaching', REMOTE_TAG_LIST_URL, '- using placeholder list.');
-                callback();
+                console.warn('[FlickrTagFilter] Timed out reaching', url);
+                onDone(null);
             }
+        });
+    }
+
+    function useTagList(list, sourceUrl) {
+        ALLOWED_TAGS = new Set(list.map(t => String(t).trim().toLowerCase()));
+        console.log('[FlickrTagFilter] Loaded', ALLOWED_TAGS.size, 'tags from', sourceUrl);
+    }
+
+    function loadRemoteTagsIfConfigured(callback) {
+        if (!REMOTE_TAG_LIST_URL) {
+            callback();
+            return;
+        }
+        fetchTagList(REMOTE_TAG_LIST_URL, function (list) {
+            if (list) {
+                useTagList(list, REMOTE_TAG_LIST_URL);
+                callback();
+                return;
+            }
+            if (!LOCAL_TAG_LIST_URL) {
+                console.warn('[FlickrTagFilter] Falling back to placeholder tag list.');
+                callback();
+                return;
+            }
+            console.warn('[FlickrTagFilter] Falling back to LAN tag list at', LOCAL_TAG_LIST_URL);
+            fetchTagList(LOCAL_TAG_LIST_URL, function (localList) {
+                if (localList) {
+                    useTagList(localList, LOCAL_TAG_LIST_URL);
+                } else {
+                    console.warn('[FlickrTagFilter] Could not reach LAN tag list either - using placeholder list.');
+                }
+                callback();
+            });
         });
     }
 
