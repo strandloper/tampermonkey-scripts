@@ -31,6 +31,13 @@ Adds a "My Photos" tab next to the "Pool" tab on Flickr group pages, linking to 
 photos in that group's pool. The target Flickr username is hardcoded (`sierrajulietcharlie`) —
 change it to your own.
 
+### `flickr-safety-level-indicator.user.js`
+On a Flickr photo page, prefixes the photo title with a coloured square badge — `S` green, `M`
+amber, `R` red — so you can see the photo's safety level without scrolling down to the metadata
+below the image. Reads the level from Flickr's own `safety-value` span, which is rendered
+client-side, and re-applies itself when you page between photos. Untitled photos get the badge
+alongside a greyed "Untitled" placeholder, since Flickr renders no title element for them at all.
+
 ### `flickr-tag-filter.user.js`
 On a Flickr user's tags page, adds a toggle button that hides every tag except a chosen allow-list.
 The allow-list can be edited in place (`PLACEHOLDER_TAGS`) or loaded from a remote JSON endpoint
