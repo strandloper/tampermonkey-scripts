@@ -26,6 +26,11 @@ On a Flickr user's albums list page, sorts albums alphabetically and adds a live
 to the toolbar. Takes over the album grid's layout with CSS since Flickr positions tiles with
 absolute coordinates that don't follow DOM order.
 
+### `flickr-dismiss-upsell-modal.user.js`
+Automatically closes the "Upgrade to Pro" modal Flickr shows at random, and logs a line to the
+console each time it does. Clicks the modal's own close button — scoped to that modal, so a dialog
+you opened yourself is never touched — falling back to Escape if the button can't be found.
+
 ### `flickr-group-my-photos.user.js`
 Adds a "My Photos" tab next to the "Pool" tab on Flickr group pages, linking to just your own
 photos in that group's pool. The target Flickr username is hardcoded (`sierrajulietcharlie`) —
