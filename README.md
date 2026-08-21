@@ -36,6 +36,11 @@ Adds a "My Photos" tab next to the "Pool" tab on Flickr group pages, linking to 
 photos in that group's pool. The target Flickr username is hardcoded (`sierrajulietcharlie`) —
 change it to your own.
 
+### `flickr-hide-get-pro.user.js`
+Hides the "✨ Get Pro" item Flickr adds to the top navigation menu for free accounts. Injects a
+single CSS rule at `document-start`, so the item never flashes up during page load and stays hidden
+however Flickr re-renders the menu — no polling or DOM watching needed.
+
 ### `flickr-safety-level-indicator.user.js`
 On a Flickr photo page, prefixes the photo title with a coloured square badge — `S` green, `M`
 amber, `R` red — so you can see the photo's safety level without scrolling down to the metadata
