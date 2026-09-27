@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Flickr Tags Nav Link
 // @namespace    https://example.local/flickr-tags-nav-link
-// @version      1.0.1
+// @version      1.0.2
 // @description  Adds a "Tags" link to the end of a Flickr profile's subnav menu (About | Photostream | Albums | Faves | Galleries | Groups).
 // @author       you
 // @match        https://www.flickr.com/people/*/
@@ -10,6 +10,8 @@
 // @match        https://www.flickr.com/photos/*/favorites
 // @match        https://www.flickr.com/photos/*/galleries
 // @match        https://www.flickr.com/people/*/groups/
+// @match        https://www.flickr.com/people/*/with/*
+// @match        https://www.flickr.com/photos/*/with/*
 // @exclude      https://www.flickr.com/photos/*/tags
 // @exclude      https://www.flickr.com/photos/*/tags/
 // @grant        none
@@ -23,8 +25,10 @@
     // @match/@exclude alone can't precisely target only the six subnav
     // page types below (e.g. "/photos/*/" also matches individual photo
     // pages and per-tag pages). Check the path ourselves and bail out
-    // immediately if this isn't one of them.
-    const ALLOWED_PATH = /^\/(?:people\/[^/]+\/(?:groups\/?)?|photos\/[^/]+\/(?:albums|favorites|galleries)?\/?)$/;
+    // immediately if this isn't one of them. Flickr may also append
+    // "/with/<photoId>" (e.g. when arriving at a photostream from a photo
+    // page), so allow that optional suffix on any of them.
+    const ALLOWED_PATH = /^\/(?:people\/[^/]+(?:\/groups)?|photos\/[^/]+(?:\/(?:albums|favorites|galleries))?)(?:\/with\/\d+)?\/?$/;
     if (!ALLOWED_PATH.test(location.pathname)) {
         return;
     }
