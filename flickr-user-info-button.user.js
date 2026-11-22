@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Flickr User Info Button
 // @namespace    https://example.local/flickr-user-info-button
-// @version      1.0.0
+// @version      1.0.1
 // @description  Adds a "Copy Info" button beside a Flickr profile's name that copies the profile's person-model data (from the page's modelExport) to the clipboard as JSON.
 // @author       you
 // @match        https://www.flickr.com/people/*
@@ -175,6 +175,12 @@
         const actions = container.querySelector('.coverphoto-actions');
         const followBtn = container.querySelector('button.follow-flickr-user-button');
         const btn = makeButton(followBtn);
+
+        // Flickr spaces "..." from Follow with a margin on the "..." button
+        // itself, so match that gap on our button.
+        const menuBtn = container.querySelector('button.context-menu-button');
+        const gap = menuBtn ? getComputedStyle(menuBtn).marginLeft : '0px';
+        btn.style.marginLeft = parseFloat(gap) > 0 ? gap : '8px';
 
         if (actions) {
             // After Follow and the "..." context-menu button.
