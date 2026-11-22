@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Flickr User Info Button
 // @namespace    https://example.local/flickr-user-info-button
-// @version      1.0.1
-// @description  Adds a "Copy Info" button beside a Flickr profile's name that copies the profile's person-model data (from the page's modelExport) to the clipboard as JSON.
+// @version      1.1.0
+// @description  Adds a "Copy Info" button beside a Flickr profile's name that copies a summary of the profile's user info (from the page's modelExport) to the clipboard as JSON.
 // @author       you
 // @match        https://www.flickr.com/people/*
 // @match        https://www.flickr.com/photos/*
@@ -120,6 +120,23 @@
         }
     }
 
+    // Reduce the full person-model data to the fields we actually want.
+    function summarise(data) {
+        // pathAlias is the user's chosen URL alias; accounts without one
+        // are addressed by their numeric id instead. Also used by the
+        // LINQPad import as the folder name under D:\Grabbed Pictures\Flickr\.
+        const userPath = data.pathAlias || data.id;
+        return {
+            username: data.username,
+            realname: data.realname,
+            isPro: data.isPro,
+            id: data.id,
+            photosUrl: 'https://www.flickr.com/photos/' + userPath + '/',
+            profileUrl: 'https://www.flickr.com/people/' + userPath + '/',
+            userPath,
+        };
+    }
+
     // ---- UI -------------------------------------------------------------------
 
     function flashLabel(btn, text) {
@@ -141,7 +158,7 @@
             return;
         }
         try {
-            await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+            await navigator.clipboard.writeText(JSON.stringify(summarise(data), null, 2));
             flashLabel(btn, 'Copied!');
         } catch (e) {
             console.warn('[flickr-user-info-button] clipboard write failed', e);
