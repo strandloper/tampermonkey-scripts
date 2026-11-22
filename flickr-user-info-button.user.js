@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Flickr User Info Button
 // @namespace    https://example.local/flickr-user-info-button
-// @version      1.1.0
-// @description  Adds a "Copy Info" button beside a Flickr profile's name that copies a summary of the profile's user info (from the page's modelExport) to the clipboard as JSON.
+// @version      1.2.1
+// @description  Adds a "Copy Info" button beside a Flickr user's Follow button (profile cover or photo page) that copies a summary of that user's info (from the page's modelExport) to the clipboard as JSON.
 // @author       you
 // @match        https://www.flickr.com/people/*
 // @match        https://www.flickr.com/photos/*
@@ -17,16 +17,20 @@
     // modelExport; we want the *other* one, i.e. the profile being viewed.
     const SELF_NSID = '77907748@N08';
 
-    const BUTTON_ID = 'tm-flickr-copy-user-info';
+    // A marker attribute rather than an id: photo pages can get more than one
+    // button (see injectPhoto).
+    const BUTTON_ATTR = 'data-tm-copy-user-info';
+    const BUTTON_SEL = '[' + BUTTON_ATTR + ']';
     const LABEL = 'Copy Info';
 
     // Used if there's no Follow button to copy classes from (e.g. on your
     // own profile, where Flickr shows different actions).
     const FALLBACK_CLASSES = 'butt flex action-button ds-button ds-button-transparent ds-button-small';
 
-    // Classes on the Follow button that Flickr's delegated click handlers
-    // key off; copying them would make our button act as a Follow button.
-    const BEHAVIOUR_CLASSES = ['follow-flickr-user-button'];
+    // Follow-specific classes (e.g. follow-flickr-user-button, and "follow"
+    // on the label) that Flickr's delegated click handlers key off; copying
+    // them would make our button act as a Follow button.
+    const BEHAVIOUR_CLASS = /follow/i;
 
     function getUserSlug() {
         const match = location.pathname.match(/^\/(?:people|photos)\/([^/]+)/);
@@ -77,11 +81,15 @@
         }
     }
 
-    function findProfilePersonData(modelExport) {
+    function findProfilePersonData(modelExport, slug) {
         const models = modelExport && modelExport.main && modelExport.main['person-models'];
         if (!Array.isArray(models)) return null;
-        const model = models.find(m => m && m.data && m.data.id !== SELF_NSID);
-        return model ? model.data : null;
+        const datas = models.map(m => m && m.data).filter(Boolean);
+        // Prefer the person the URL names (the profile owner, or the photo's
+        // owner on a photo page); otherwise anyone who isn't the viewer.
+        const data = datas.find(d => matchesSlug(d, slug))
+            || datas.find(d => d.id !== SELF_NSID);
+        return data || null;
     }
 
     function matchesSlug(data, slug) {
@@ -91,8 +99,8 @@
             .some(v => typeof v === 'string' && v.toLowerCase() === s);
     }
 
-    function personDataFromSource(source) {
-        return findProfilePersonData(extractModelExport(source));
+    function personDataFromSource(source, slug) {
+        return findProfilePersonData(extractModelExport(source), slug);
     }
 
     async function getPersonData() {
@@ -102,10 +110,10 @@
         for (const script of document.querySelectorAll('script:not([src])')) {
             const text = script.textContent;
             if (!text.includes('initFcn') || !text.includes('modelExport')) continue;
-            const data = personDataFromSource(text);
+            const data = personDataFromSource(text, slug);
             // After client-side navigation the inline script still describes
-            // the profile the tab was first loaded on, so only trust it if
-            // it's for the profile now on screen.
+            // the page the tab was first loaded on, so only trust it if it's
+            // for the user now on screen.
             if (data && matchesSlug(data, slug)) return data;
         }
 
@@ -113,7 +121,7 @@
         try {
             const resp = await fetch(location.href, { credentials: 'include' });
             if (!resp.ok) return null;
-            return personDataFromSource(await resp.text());
+            return personDataFromSource(await resp.text(), slug);
         } catch (e) {
             console.warn('[flickr-user-info-button] fetch failed', e);
             return null;
@@ -140,7 +148,7 @@
     // ---- UI -------------------------------------------------------------------
 
     function flashLabel(btn, text) {
-        const label = btn.querySelector('.action-button-text') || btn;
+        const label = btn._tmLabel || btn;
         label.textContent = text;
         clearTimeout(btn._tmResetTimer);
         btn._tmResetTimer = setTimeout(() => { label.textContent = LABEL; }, 1500);
@@ -166,28 +174,65 @@
         }
     }
 
+    // Copy a Follow button's classes for styling, minus the follow-specific
+    // ones Flickr's delegated click handlers key off.
+    function styleClasses(el) {
+        return Array.from(el.classList).filter(c => !BEHAVIOUR_CLASS.test(c)).join(' ');
+    }
+
     function makeButton(templateBtn) {
         const btn = document.createElement('button');
-        btn.id = BUTTON_ID;
+        btn.setAttribute(BUTTON_ATTR, '');
         btn.type = 'button';
-        btn.className = templateBtn
-            ? Array.from(templateBtn.classList).filter(c => !BEHAVIOUR_CLASSES.includes(c)).join(' ')
-            : FALLBACK_CLASSES;
+        btn.className = templateBtn ? styleClasses(templateBtn) : FALLBACK_CLASSES;
 
-        const label = document.createElement('span');
-        label.className = 'action-button-text';
+        // Mirror the template's label wrapper (e.g. <span class="action-button-text">)
+        // if it has one, so text styling matches too.
+        const templateLabel = templateBtn && Array.from(templateBtn.querySelectorAll('span'))
+            .find(s => s.children.length === 0 && s.textContent.trim());
+        let label = btn;
+        if (templateLabel) {
+            label = document.createElement('span');
+            label.className = styleClasses(templateLabel);
+            btn.appendChild(label);
+        }
         label.textContent = LABEL;
-        btn.appendChild(label);
+        btn._tmLabel = label;
 
         btn.addEventListener('click', onClick);
         return btn;
     }
 
     function inject() {
+        injectProfile() || injectPhoto();
+    }
+
+    // Photo page: beside the owner's Follow button under the photo. Flickr
+    // renders the attribution block more than once (a hidden copy for the
+    // full-screen viewer comes first in the DOM), so add a button to each.
+    function injectPhoto() {
+        const infos = document.querySelectorAll('div.attribution-info');
+        for (const info of infos) {
+            if (info.querySelector(BUTTON_SEL)) continue;
+
+            // The follow-view's contents are rendered client-side, so it may
+            // still be empty; the MutationObserver will call us again.
+            const followBtn = info.querySelector('.follow-view button');
+            if (!followBtn) continue;
+
+            const btn = makeButton(followBtn);
+            btn.style.marginLeft = '8px';
+            followBtn.after(btn);
+        }
+        return infos.length > 0;
+    }
+
+    // Profile/photostream cover: beside the user's name in the cover photo.
+    function injectProfile() {
         const h1 = document.querySelector('div.title-container > h1');
-        if (!h1) return;
+        if (!h1) return false;
         const container = h1.parentElement;
-        if (container.querySelector('#' + BUTTON_ID)) return;
+        if (container.querySelector(BUTTON_SEL)) return true;
 
         const actions = container.querySelector('.coverphoto-actions');
         const followBtn = container.querySelector('button.follow-flickr-user-button');
@@ -205,6 +250,7 @@
         } else {
             h1.after(btn);
         }
+        return true;
     }
 
     inject();
